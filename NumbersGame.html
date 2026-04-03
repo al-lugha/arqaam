@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Arabic Numbers Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
+
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  background: radial-gradient(circle at top, #12281b, #0c1c12);
+  color:#e8dfc0;
+  display:flex;
+  justify-content:center;
+}
+
+.main {
+  max-width:440px;
+  width:100%;
+  padding:24px 16px 40px;
+}
+
+/* HEADER */
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+.title {
+  font-family:'Amiri', serif;
+  font-size:28px;
+  color:#c9a84c;
+}
+.progress {
+  font-size:13px;
+  color:#7a9e82;
+}
+
+/* STATS */
+.stats {
+  display:flex;
+  gap:8px;
+  margin-bottom:18px;
+}
+.stat {
+  flex:1;
+  background:#162b1e;
+  border:1px solid #2a4a32;
+  border-radius:14px;
+  text-align:center;
+  padding:10px 6px;
+}
+.stat label {
+  font-size:9px;
+  color:#7a9e82;
+  display:block;
+  margin-bottom:4px;
+  text-transform:uppercase;
+}
+.stat span {
+  font-size:20px;
+  font-weight:700;
+}
+
+/* NUMBER CARD */
+.card {
+  background:#162b1e;
+  border:1px solid #2a4a32;
+  border-radius:24px;
+  padding:28px 16px;
+  text-align:center;
+  margin-bottom:16px;
+  position:relative;
+  overflow:hidden;
+}
+
+.card::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle, rgba(201,168,76,0.12), transparent 70%);
+  opacity:0;
+  transition:0.4s;
+}
+.card.active::after { opacity:1; }
+
+.number {
+  font-size:72px;
+  font-weight:700;
+  letter-spacing:2px;
+}
+
+.timer {
+  margin-top:10px;
+  font-size:14px;
+  color:#7a9e82;
+}
+
+.timer-bar {
+  height:6px;
+  background:#2a4a32;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:8px;
+}
+
+.timer-fill {
+  height:100%;
+  width:100%;
+  background:#c9a84c;
+  transition:width 1s linear;
+}
+
+/* CHOICES */
+.choices {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.choice {
+  background:#162b1e;
+  border:1px solid #2a4a32;
+  border-radius:18px;
+  padding:18px 10px;
+  text-align:center;
+  font-family:'Amiri', serif;
+  font-size:17px;
+  cursor:pointer;
+  transition:0.15s;
+}
+
+.choice:hover { border-color:#c9a84c; background:#1d3a28; }
+.choice:active { transform:scale(0.95); }
+
+.choice.correct {
+  background:#163325;
+  border:2px solid #5ecb80;
+  color:#9debb5;
+}
+
+.choice.wrong {
+  background:#2e1212;
+  border:2px solid #e07070;
+  color:#f0a0a0;
+}
+
+/* FOOTER MESSAGE */
+.feedback {
+  text-align:center;
+  font-size:14px;
+  margin-top:12px;
+  min-height:20px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="main">
+
+<div class="header">
+  <div class="title">الأعداد</div>
+  <div class="progress" id="progress">0 / 60</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><label>Score</label><span id="score">0</span></div>
+  <div class="stat"><label>Wrong</label><span id="wrong">0</span></div>
+  <div class="stat"><label>Streak</label><span id="streak">0</span></div>
+</div>
+
+<div class="card" id="card">
+  <div class="number" id="number">--</div>
+  <div class="timer">Time: <span id="time">8</span>s</div>
+  <div class="timer-bar"><div class="timer-fill" id="bar"></div></div>
+</div>
+
+<div class="choices" id="choices"></div>
+<div class="feedback" id="feedback"></div>
+
+</div>
+
+<script>
+// SAME LOGIC (cleaned + enhanced feedback + streak glow)
+
+const ones=["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
+const tens=["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+const teens=["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
+
+function numberToArabic(n){
+  if(n===0)return"صفر";
+  let p=[];
+  if(n>=1000){let t=Math.floor(n/1000);
+    if(t===1)p.push("ألف");
+    else if(t===2)p.push("ألفان");
+    else p.push(numberToArabic(t)+" آلاف");
+    n%=1000;}
+  if(n>=100){let h=Math.floor(n/100);
+    if(h===1)p.push("مائة");
+    else if(h===2)p.push("مائتان");
+    else p.push(ones[h]+" مائة");
+    n%=100;}
+  if(n>=20){let t=Math.floor(n/10),o=n%10;
+    if(o)p.push(ones[o]+" و"+tens[t]); else p.push(tens[t]);}
+  else if(n>=10)p.push(teens[n-10]);
+  else if(n>0)p.push(ones[n]);
+  return p.join(" و");}
+
+let s={score:0,wrong:0,streak:0,q:0,ans:"",timer:8,int:null,done:false};
+
+function newQ(){
+  if(s.q>=60){alert("Finished! Score: "+s.score);location.reload();}
+  s.q++; s.done=false;
+  let n=Math.floor(Math.random()*4800)+1;
+  s.ans=numberToArabic(n);
+  number.textContent=n;
+  progress.textContent=s.q+" / 60";
+  genChoices(); startTimer();
+}
+
+function genChoices(){
+  let set=new Set([s.ans]);
+  while(set.size<4)set.add(numberToArabic(Math.floor(Math.random()*4800)+1));
+  let arr=[...set].sort(()=>Math.random()-0.5);
+  choices.innerHTML="";
+  arr.forEach(a=>{
+    let b=document.createElement("div");
+    b.className="choice";
+    b.textContent=a;
+    b.onclick=()=>answer(a,b);
+    choices.appendChild(b);
+  });
+}
+
+function startTimer(){
+  clearInterval(s.int);
+  s.timer=14;
+  bar.style.width="100%";
+  time.textContent=s.timer;
+
+  s.int=setInterval(()=>{
+    s.timer--;
+    time.textContent=s.timer;
+    bar.style.width=(s.timer/8*100)+"%";
+    if(s.timer<=0){clearInterval(s.int); if(!s.done) wrong();}
+  },1000);
+}
+
+function answer(a,b){
+  if(s.done)return; s.done=true;
+  clearInterval(s.int);
+
+  if(a===s.ans){
+    b.classList.add("correct");
+    s.score+=10+s.streak*2;
+    s.streak++;
+    feedback.textContent="✓ Correct";
+    card.classList.add("active");
+  } else {
+    b.classList.add("wrong"); wrong();
+    document.querySelectorAll('.choice').forEach(x=>{
+      if(x.textContent===s.ans)x.classList.add("correct");
+    });
+  }
+
+  update();
+  setTimeout(()=>{card.classList.remove("active"); newQ();},900);
+}
+
+function wrong(){
+  s.wrong++; s.streak=0;
+  feedback.textContent="✗ Wrong";
+  if(s.wrong>=3){alert("Game Over");location.reload();}
+}
+
+function update(){
+  score.textContent=s.score;
+  wrong.textContent=s.wrong;
+  streak.textContent=s.streak;
+}
+
+newQ();
+</script>
+</body>
+</html>
